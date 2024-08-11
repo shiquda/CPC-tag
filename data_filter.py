@@ -1,41 +1,51 @@
 import json
 import csv
 
-# tags.json数据来自 https://www.luogu.com.cn/_lfe/tags
-with open('./data/tags.json') as f:
+# 读取标签数据
+with open('./data/tags.json', 'r') as f:
     tag_data = json.load(f)
 
     algo_type = 2
-    # 保留json中type为"type": 2, 的数据，返回一个有效id的集合
     valid_ids = set()
     for tag in tag_data["tags"]:
         if tag['type'] == algo_type:
             valid_ids.add(tag['id'])
 
-    # print(valid_ids)
     print(f"{len(valid_ids)} tags in total.")
 
-with open("./data/problems.csv", "r") as f:
-    # 把已有的csv文件过滤掉不含有效标签的题目，并且重新生成一个csv文件，滤去无关的标签，其中最右边一侧是tags
+# 创建从原始标签到连续整数的映射
+tag_id_to_index = {tag: idx for idx, tag in enumerate(valid_ids)}
 
+# 创建从连续整数到标签字符串的映射
+with open('./data/tags.json', 'r') as f:
+    tag_data = json.load(f)
+    # index_to_tag_str =
+    # 从tag_id_to_index获取值对应的键id的名称
+    index_to_tag_str = {tag_id_to_index[tag['id']]: tag['name'] for tag in tag_data["tags"] if tag['id'] in valid_ids}
+
+# 保存标签映射关系
+with open('./data/tag_mapping.json', 'w') as f:
+    json.dump(index_to_tag_str, f, indent=4, ensure_ascii=False)
+
+
+# 处理问题数据
+with open("./data/problems.csv", "r") as f:
     reader = csv.reader(f)
     problems = list(reader)
     print(f"{len(problems)} problems before processing.")
     algo_problems = []
-    # id,title,text,tags,url
+    # 处理问题，过滤和重新标记标签
     idx = 1
-    for problem in problems[1:]:
+    for problem in problems[1:]:  # 跳过标题行
         tags = json.loads(problem[3])
-        if any(tag in valid_ids for tag in tags):
-            for tag in tags:
-                if tag not in valid_ids:
-                    tags.remove(tag)
-            algo_problems.append([idx, problem[2], json.dumps(tags)])
+        new_tags = [tag_id_to_index[tag] for tag in tags if tag in valid_ids]
+        if new_tags:
+            algo_problems.append([idx, problem[2], json.dumps(new_tags)])
             idx += 1
-    print(f"{idx} problems after processing.")
+    print(f"{idx - 1} problems after processing.")
 
-    with open("./data/algo_problems.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(algo_problems)
-
-    # print(algo_problems)
+# 保存处理后的问题数据
+with open("./data/algo_problems.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["id", "text", "tags"])
+    writer.writerows(algo_problems)
