@@ -2,7 +2,7 @@ import json
 import csv
 
 # tags.json数据来自 https://www.luogu.com.cn/_lfe/tags
-with open('tags.json') as f:
+with open('./data/tags.json') as f:
     tag_data = json.load(f)
 
     algo_type = 2
